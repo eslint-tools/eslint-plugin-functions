@@ -1,0 +1,36 @@
+{
+  "name": "eslint-plugin-functions",
+  "version": "0.0.4",
+  "repository": "github:eslint-tools/eslint-plugin-functions",
+  "main": "./lib/index.js",
+  "files": [
+    "lib"
+  ],
+  "scripts": {
+    "lint": "eslint --max-warnings 0 \"src/**/*.ts\"",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write src",
+    "format:lib": "prettier --write lib",
+    "format:check": "prettier --check src",
+    "test": "npm run lint && npm run typecheck && npm run format:check",
+    "clean": "rm -rf lib",
+    "build": "npm run clean && rollup -c && npm run format:lib",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "@rollup/plugin-typescript": "^11.1.6",
+    "@types/eslint": "^8.56.6",
+    "eslint": "^8.57.0",
+    "eslint-config-xt": "^1.8.0",
+    "prettier": "^3.2.5",
+    "rollup": "^4.13.0",
+    "typescript": "^5.1.6"
+  },
+  "eslintConfig": {
+    "extends": "xt"
+  },
+  "prettier": {
+    "singleQuote": true
+  },
+  "license": "ISC"
+}
