@@ -1,6 +1,6 @@
 {
   "name": "eslint-plugin-functions",
-  "version": "0.0.4",
+  "version": "0.0.7",
   "repository": "github:eslint-tools/eslint-plugin-functions",
   "main": "./lib/index.js",
   "files": [
