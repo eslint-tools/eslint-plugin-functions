@@ -3,6 +3,7 @@
  * https://github.com/eslint/eslint/blob/v8.57.0/lib/rules/func-style.js
  */
 import type { Rule } from 'eslint';
+import type { ArrowFunctionExpression } from 'estree';
 
 // Function to check if the node is at the top level of a module
 function isTopLevel(node: Rule.Node) {
@@ -34,6 +35,50 @@ function isClassMethod(node: Rule.Node) {
   return node.type === 'MethodDefinition' && node.parent.type === 'ClassBody';
 }
 
+function convertToFnDecl(
+  context: Rule.RuleContext,
+  node: ArrowFunctionExpression & Rule.NodeParentExtension,
+  fixer: Rule.RuleFixer,
+): null | Rule.Fix {
+  const { parent } = node;
+  if (parent.type !== 'VariableDeclarator') {
+    return null;
+  }
+  const identifier = parent.id;
+  if (identifier.type !== 'Identifier') {
+    return null;
+  }
+  const sourceCode = context.sourceCode;
+
+  const typeParameters: Rule.Node | undefined = Object(node).typeParameters;
+  const generics =
+    typeParameters?.type === String('TSTypeParameterDeclaration')
+      ? sourceCode.getText(typeParameters)
+      : '';
+
+  const params = node.params
+    .map((param) => sourceCode.getText(param))
+    .join(', ');
+  const bodyRaw = sourceCode.getText(node.body);
+  const body =
+    node.body.type === 'BlockStatement' ? bodyRaw : `{ return ${bodyRaw}; }`;
+  const functionName = identifier.name;
+
+  const asyncKeyword = node.async ? 'async ' : '';
+
+  const returnType: Rule.Node | undefined = Object(node).returnType;
+  const typeAnnotation: Rule.Node | undefined = returnType
+    ? Object(returnType).typeAnnotation
+    : undefined;
+  const returnTypeAnnotation = typeAnnotation
+    ? `: ${sourceCode.getText(typeAnnotation)}`
+    : '';
+
+  const functionDeclarationCode = `${asyncKeyword}function ${functionName}${generics}(${params})${returnTypeAnnotation} ${body}`;
+
+  return fixer.replaceText(node.parent.parent, functionDeclarationCode);
+}
+
 const rule: Rule.RuleModule = {
   meta: {
     docs: {
@@ -45,6 +90,7 @@ const rule: Rule.RuleModule = {
       expectedFunctionDeclaration: 'Expected a function declaration.',
       expectedArrowFunction: 'Expected an arrow function expression.',
     },
+    fixable: 'code',
   },
 
   create: (context) => {
@@ -68,7 +114,11 @@ const rule: Rule.RuleModule = {
           isTopLevel(node) &&
           node.parent.type !== 'ExportDefaultDeclaration'
         ) {
-          context.report({ node, messageId: 'expectedFunctionDeclaration' });
+          context.report({
+            node,
+            messageId: 'expectedFunctionDeclaration',
+            fix: (fixer) => convertToFnDecl(context, node, fixer),
+          });
         }
       },
     };
